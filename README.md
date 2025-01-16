@@ -21,6 +21,7 @@ This repository contains the code to reproduce the Figures of our manuscript "Ev
 - **`Scripts`**  
   - Contains the additional scripts to preprocess the original datasets and reproduce Figure 1 of the main manuscript. 
 
+(*) An HTML rendering of each notebook is also provided.
 
 ## Setup and Dependencies
 All code is written in Julia version 1.6.7. To replicate the environment:
