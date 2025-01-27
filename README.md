@@ -40,5 +40,5 @@ Downloaded from [this Dropbox link](https://www.dropbox.com/scl/fo/3z3ac0dge3369
 Available in R via the `scRNAseq` package (function `ZeiselBrainData()`), or under the GEO accession [GSE60361](https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE60361) The preprocessing steps are the ones described in the workflow given by [OSCA.workflows tutorial](http://bioconductor.org/books/3.14/OSCA.workflows/zeisel-mouse-brain-strt-seq.html). A preprocessed version is also included in `Data/Datasets/`.
 
 ### 3. Embryoid Body Data
-Available at [Mendeley Data](https://data.mendeley.com/datasets/v6n743h5ng/1) and preprocessed according to the authors' indications described in their [Google Colab tutorial notebook](https://colab.research.google.com/github/KrishnaswamyLab/PHATE/blob/master/Python/tutorial/EmbryoidBody.ipynb#scrollTo=ZAdnUiMDFdEf).
+Available at [Mendeley Data](https://data.mendeley.com/datasets/v6n743h5ng/1) and preprocessed according to the authors' indications described in their [Google Colab tutorial notebook](https://colab.research.google.com/github/KrishnaswamyLab/SingleCellWorkshop/blob/master/exercises/Preprocessing/notebooks/00_Answers_Loading_and_preprocessing_scRNAseq_data.ipynb).
 
