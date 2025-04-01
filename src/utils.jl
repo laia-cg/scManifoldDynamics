@@ -101,10 +101,15 @@ Loads a dataset and initializes reduction arguments for dimensionality reduction
 - An `AnnData` object containing the dataset and its metadata.
 """
 function get_data(dataset::String)
-    countmatrix_tmp = CSV.read("../Data/Datasets/$(dataset)_counts.csv", DataFrames.DataFrame)
+    base_dir = normpath(joinpath(@__DIR__, "..", "Data", "Datasets"))
+
+    counts_path = joinpath(base_dir, "$(dataset)_counts.csv")
+    annot_path = joinpath(base_dir, "$(dataset)_cell_annotation.csv")
+
+    countmatrix_tmp = CSV.read(counts_path, DataFrames.DataFrame)
     data = Array{Float32,2}(Array{Float32,2}(countmatrix_tmp[:,2:end])')  
 
-    cell_annotation = CSV.read("../Data/Datasets/$(dataset)_cell_annotation.csv", DataFrames.DataFrame)
+    cell_annotation = CSV.read(annot_path, DataFrames.DataFrame)
     cell_annotation = cell_annotation[:,:x]
     
     adata = AnnData(countmatrix=data, 
@@ -117,6 +122,9 @@ function get_data(dataset::String)
     elseif dataset == "Zeisel"
         TSNE_args = TSNEArgs(seed = 1013, perplexity = 20, pca_dims = 100)
         UMAP_args = UMAPArgs(seed = 9711, pca_dims = 100)
+    elseif dataset == "Lymph"
+        TSNE_args = TSNEArgs(seed = 1013, perplexity = 50, pca_dims = 50)
+        UMAP_args = UMAPArgs(seed = 9711, pca_dims = 50, n_nbrs = 30)
     end
     reduction_args = ReductionArgs(tsne = TSNE_args, umap = UMAP_args) 
     adata.uns["reduction_args"] = reduction_args
@@ -142,7 +150,7 @@ Identifies clusters based on cell annotations.
 """
 function find_clusters(adata)
     cell_annotation = get_celltypes(adata)
-    unique_clusters = unique(cell_annotation)
+    unique_clusters = sort(unique(cell_annotation))
     c = Vector{Vector{Int}}(undef, length(unique_clusters))
 
     # Group cells by cluster
@@ -159,7 +167,7 @@ function find_clusters(adata)
             cell_cluster_map[cell] = cluster_idx
         end
     end
-    combined_labels = [string(get_celltypes(adata)[i], " - c", cell_cluster_map[i]) for i in 1:length(get_celltypes(adata))]
+    combined_labels = [string(cell_annotation[i], " - c", cell_cluster_map[i]) for i in 1:length(cell_annotation)]
     return c, combined_labels
 end
 
@@ -322,7 +330,7 @@ function save_trained_model(
         "original_labels" => original_labels,
         "latent" => latent_data,
         "generated" => generated_data
-    )
+        )
     end
     save_model = Dict("trained_model" => m, "trained_data"=> trained_data)
     save_path = joinpath(save_directory, "$(dataset)_$(model).jld2")
@@ -333,6 +341,23 @@ end
 
 
 
+# tableau20_extended = [
+#     "#1F77B4", "#AEC7E8",  
+#     "#FF7F0E", "#FFBB78",  
+#     "#2CA02C", "#98DF8A",  
+#     "#D62728", "#FF9896",  
+#     "#9467BD", "#C5B0D5",  
+#     "#8C564B", "#C49C94",  
+#     "#7F7F7F", "#C7C7C7",  
+#     "#E377C2", "#F7B6D2",  
+#     "#BCBD22", "#DBDB8D",  
+#     "#17BECF", "#9EDAE5",   
+#     "#FFD700", "#FFFACD",
+#     "#4B0082","#FF6347",  
+#     "#32CD32", "#ADFF2F",
+#     # "#8B4513", "#00CED1",
+#     "#8B008B"
+# ]
 
 
 

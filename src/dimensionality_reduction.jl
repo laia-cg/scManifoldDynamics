@@ -38,6 +38,7 @@ Arguments for configuring UMAP dimensionality reduction.
     seed::Int = 9711
     pca_dims::Int = 100
     min_dist::Number = 0.5
+    n_nbrs::Number = 15
 end
 
 """
@@ -102,7 +103,8 @@ Performs dimensionality reduction on the dataset using PCA, t-SNE, and UMAP.
 """
 function get_reduced_dimensions(
     adata; 
-    reduction_args::Union{ReductionArgs, Nothing}=nothing, 
+    reduction_args::Union{ReductionArgs, Nothing}=nothing,
+    markersize::Number = 25 
 )
     
     if isnothing(reduction_args)
@@ -110,36 +112,53 @@ function get_reduced_dimensions(
     end
     
     #PCA
+    @info "Calculating PCA..."
     pcs = scVI.prcomps(log.(normalization(adata.countmatrix) .+ 1))
 
     #UMAP
+    @info "PCA done! Calculating UMAP..."
     Random.seed!(reduction_args.umap.seed) 
-    umapout = umap(pcs[:,1:reduction_args.umap.pca_dims]', min_dist=reduction_args.umap.min_dist)
+    umapout = umap(pcs[:,1:reduction_args.umap.pca_dims]', min_dist=reduction_args.umap.min_dist, n_neighbors = reduction_args.umap.n_nbrs)
     ncells = size(umapout, 2)
 
     #tSNE
+    @info "UMAP done! Calculating tSNE..."
     Random.seed!(reduction_args.tsne.seed) 
     tSNE = tsne(rescale(adata.countmatrix, dims=1), 2, reduction_args.tsne.pca_dims, 1000, reduction_args.tsne.perplexity, progress=false) 
 
-    
+    cell_annotation = get_celltypes(adata)
     df_stacked_all_reduced = DataFrame(z1 = vcat(pcs[:,1], tSNE[:,1], umapout[1,:]), 
                             z2 = vcat(pcs[:,2], tSNE[:,2], umapout[2,:]),
-                            Celltype = repeat(get_celltypes(adata), outer = 3),
+                            Celltype = repeat(cell_annotation, outer = 3),
                             Method = vcat(fill("PCS", ncells), fill("tSNE", ncells), fill("UMAP", ncells)), 
     )
 
-    # Plot
-    plot_reduced = df_stacked_all_reduced |>
-    @vlplot(width=450,
-            height=300,
-            :circle, 
-            x={:z1, title="z1", axis={titleFontSize=15, labelFontSize=15, tickCount=5}}, 
-            y={:z2, title="z2", axis={titleFontSize=15, labelFontSize=15, tickCount=5}}, 
-            column = {"Method:n", header={title = nothing, labelFontSize=20, titleFontSize=15, labelFontWeight="bold"}},
-            color={"Celltype:n", scale={scheme="tableau10"}, legend={disable=false, title="Cell annotation",orient="right"}},
-            size={value=25},
-            config={legend={titleFontSize=20, labelFontSize=15}},
-            resolve={scale={x="independent",y="independent"}}
-    )
+    if length(cell_annotation)<10
+        plot_reduced = df_stacked_all_reduced |>
+        @vlplot(width=450,
+                height=300,
+                :circle, 
+                x={:z1, title="z1", axis={titleFontSize=15, labelFontSize=15, tickCount=5}}, 
+                y={:z2, title="z2", axis={titleFontSize=15, labelFontSize=15, tickCount=5}}, 
+                column = {"Method:n", header={title = nothing, labelFontSize=20, titleFontSize=15, labelFontWeight="bold"}},
+                color={"Celltype:n", scale={scheme="tableau10"}, legend={disable=false, title="Cell annotation",orient="right"}},
+                size={value=25},
+                config={legend={titleFontSize=20, labelFontSize=15}},
+                resolve={scale={x="independent",y="independent"}}
+        )
+    else
+        plot_reduced = df_stacked_all_reduced |>
+        @vlplot(width=450,
+                height=300,
+                :circle, 
+                x={:z1, title="z1", axis={titleFontSize=15, labelFontSize=15, tickCount=5}}, 
+                y={:z2, title="z2", axis={titleFontSize=15, labelFontSize=15, tickCount=5}}, 
+                column = {"Method:n", header={title = nothing, labelFontSize=20, titleFontSize=15, labelFontWeight="bold"}},
+                color={"Celltype:n", scale={range=tableau20_extended}, legend={disable=false, title="Cell annotation",orient="right"}},
+                size={value=5},
+                config={legend={titleFontSize=20, labelFontSize=15}},
+                resolve={scale={x="independent",y="independent"}}
+        )
+    end
     return df_stacked_all_reduced, plot_reduced
 end

@@ -134,32 +134,51 @@ end
 
 
 """
-    divide_cluster(x, y; m, n, fa, fb, sigma=0.5)
+    divide_cluster(x, y; m=nothing, n=nothing, xcut=nothing, fa, fb, sigma=0.5)
 
-Divides the points `(x, y)` of a group of points (e.g a cell cluster) using a line and applies one of two transformations (`fa` or `fb`) based on the point's position relative to the line.
+Divides the points `(x, y)` of a group using either:
+- A linear boundary: `y = m*x + n`
+- Or a vertical boundary: `x = xcut`
+
+Applies one of two transformations (`fa`, `fb`) based on the point's position relative to the chosen line, optionally adding Gaussian noise for probabilistic splitting.
 
 # Arguments
 - `x, y`: Input coordinates.
-- `m, n`: Parameters for the dividing line: `y = m * x + n`.
-- `fa`: Transformation function to apply above the line.
-- `fb`: Transformation function to apply below the line.
-- `sigma`: Standard deviation of random noise added to `y` for probabilistic splitting (default: `0.5`).
+- `m, n`: Slope and intercept for a line `y = m*x + n`.
+- `xcut`: x-value for a vertical line `x = xcut`. (Set this **instead** of `m` and `n`)
+- `fa`: Transformation function to apply on one side.
+- `fb`: Transformation function to apply on the other side.
+- `sigma`: Std. dev. of Gaussian noise added for soft boundary (default: `0.5`).
 
 # Returns
-- Transformed coordinates `[x', y']` using `fa` if the point is above the line, or `fb` if below.
+- Transformed coordinates `[x', y']` using `fa` or `fb`.
 """
 function divide_cluster(x, y; 
-    m::Number, 
-    n::Number, 
+    m::Union{Number,Nothing}=nothing, 
+    n::Union{Number,Nothing}=nothing,
+    xcut::Union{Number,Nothing}=nothing,
     fa::FunctionParams, 
     fb::FunctionParams, 
-    sigma::Number=0.5)
+    sigma::Number=0.5,
+    seed::Number = 1234)
 
+    Random.seed!(seed)
     d = rand(Normal(0.0, sigma))
-    if (y + d) >= m * x + n
-        return fa.tfunction(x, y; fa.params...)
+
+    if xcut !== nothing         # Vertical division
+        if x + d >= xcut
+            return fa.tfunction(x, y; fa.params...)
+        else
+            return fb.tfunction(x, y; fb.params...)
+        end
+    elseif m !== nothing && n !== nothing   # Regular linear division
+        if y + d >= m * x + n
+            return fa.tfunction(x, y; fa.params...)
+        else
+            return fb.tfunction(x, y; fb.params...)
+        end
     else
-        return fb.tfunction(x, y; fb.params...)
+        error("You must provide either (m, n) for a sloped line, or xcut for a vertical line.")
     end
 end
 
